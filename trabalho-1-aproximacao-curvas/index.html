@@ -1,11 +1,15 @@
-<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>playground</title>
+  <title>UFF 2021-1 - TCC00255 - Trabalho 1</title>
+
+  <script src="/common/js/utils.js" type="text/javascript"></script>
+  <script src="math.js" type="text/javascript"></script>
   <script src="geometry.js"></script>
   <script src="trabalho-1.js"></script>
+  <script src="remap.js"></script>
+  <script src="quicksettings.js"></script>
+  <script src="settings.js"></script>
+  <link rel="stylesheet" type="text/css" href="quicksettings_tiny.css">
   <style>
     body {
       margin: 0 0;
@@ -16,7 +20,256 @@
       margin: auto;
     }
   </style>
+
+  <script id="vertex-shader" type="x-shader/x-vertex">
+    #version 300 es
+    precision mediump float;
+
+    in vec3 aVertexPosition;
+    uniform mat4 transformationMatrix;
+    uniform vec4 minMaxValues;
+
+    float remap(float x, float oMin, float oMax, float nMin, float nMax) {
+
+      //check reversed input range
+      bool reverseInput = false;
+      float oldMin = oMin < oMax ? oMin : oMax;
+      float oldMax = oMin < oMax ? oMax : oMin;
+      if (oldMin == oMin) reverseInput = true;
+
+      //check reversed output range
+      bool reverseOutput = false;
+      float newMin = nMin < nMax ? nMin : nMax;
+      float newMax = nMin < nMax ? nMax : nMin;
+      if (newMin == nMin) reverseOutput = true;
+
+      float portion = (x-oldMin)*(newMax-newMin)/(oldMax-oldMin);
+      if (reverseInput) portion = (oldMax-x)*(newMax-newMin)/(oldMax-oldMin);
+
+      float result = portion + newMin;
+      if (reverseOutput) result = newMax - portion;
+
+      return result;
+    }
+
+    void main(void) {
+      gl_PointSize = 40.0;
+      vec4 newVertex = vec4(
+        remap(aVertexPosition[0], minMaxValues[0], minMaxValues[1], -1.0, 1.0),
+        remap(aVertexPosition[1], minMaxValues[2], minMaxValues[3], -1.0, 1.0),
+        0.0,
+        1.0
+        );
+      // gl_Position = vec4(aVertexPosition, 1.0);
+      // gl_Position = vec4(aVertexPosition, 1.0) * transformationMatrix;
+      gl_Position = vec4(newVertex) * transformationMatrix;
+    }
+
+  </script>
+
+  <!-- fragment shader -->
+  <script id="fragment-shader" type="x-shader/x-fragment">
+    #version 300 es
+    precision mediump float;
+
+    uniform vec4 aColor;
+    out vec4 fragColor;
+
+    void main(void) {
+      // fragColor = vec4(0.5, 0.5, 1.0, 1.0);
+      fragColor = aColor;
+    }
+
+  </script>
+
+  <script type="text/javascript">
+    // 'use strict';
+
+    let gl,
+        program;
+
+    let reticulateBoxVertices, reticulateBoxLines;
+
+    // uniforms
+
+    var aColorLocation;
+    var transformationMatrixLocation, minMaxValuesLocation;
+
+    var minMaxValues         = [-1, 1, -1, 1];
+    var transformationMatrix = [
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1,
+    ];
+    let desenharTriangulos = true;
+
+    var aColor = [0.5, 0.5, 1, 1];
+    let corTriangulos = [0.3, 0.3, 0.3, 1];
+    let corBorda = [0.3, 0.3, 0.3, 1];
+
+
+    // reusado do livro-texto
+    function getShader(id) {
+      const script       = document.getElementById(id);
+      const shaderString = script.text.trim();
+
+      let shader;
+      if (script.type === 'x-shader/x-vertex') {
+        shader = gl.createShader(gl.VERTEX_SHADER);
+      }
+      else if (script.type === 'x-shader/x-fragment') {
+        shader = gl.createShader(gl.FRAGMENT_SHADER);
+      }
+      else {
+        return null;
+      }
+
+      gl.shaderSource(shader, shaderString);
+      gl.compileShader(shader);
+
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(shader));
+        return null;
+      }
+
+      return shader;
+    }
+
+    function initProgram() {
+      const vertexShader   = getShader('vertex-shader');
+      const fragmentShader = getShader('fragment-shader');
+
+      program = gl.createProgram();
+      gl.attachShader(program, vertexShader);
+      gl.attachShader(program, fragmentShader);
+      gl.linkProgram(program);
+
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error('Could not initialize shaders');
+      }
+
+      gl.useProgram(program);
+      program.aVertexPosition      = gl.getAttribLocation(program, 'aVertexPosition');
+      transformationMatrixLocation = gl.getUniformLocation(program, 'transformationMatrix');
+      minMaxValuesLocation         = gl.getUniformLocation(program, 'minMaxValues');
+      aColorLocation = gl.getUniformLocation(program, 'aColor');
+
+    }
+
+    function draw() {
+
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+      if (gl.canvas.width > gl.canvas.height) {
+        transformationMatrix[0] = 1 / (gl.canvas.width / gl.canvas.height);
+      }
+      else {
+        transformationMatrix[5] = 1 / (gl.canvas.height / gl.canvas.width);
+      }
+      // let m_width = m_max - m_min, n_height = n_max - n_min;
+      // let ratio = Math.min(gl.canvas.width / m_width, gl.canvas.height / n_height);
+
+      gl.uniformMatrix4fv(transformationMatrixLocation, false, transformationMatrix);
+      gl.uniform4f(minMaxValuesLocation, m_min, m_max, n_min, n_max);
+
+      reticulateBoxVertices = [
+        m_min, n_min, nivel,
+        m_min, n_max, nivel,
+        m_max, n_max, nivel,
+        m_max, n_min, nivel,
+      ];
+
+      reticulateBoxLines = [
+        0, 1,
+        1, 2,
+        2, 3,
+        3, 0,
+        // 0, 2,
+        // 1, 3,
+      ];
+
+      if (desenharTriangulos) {
+        let triangulos_participantes_VAO = gl.createVertexArray();
+        gl.bindVertexArray(triangulos_participantes_VAO);
+        let triangulos_participantes_VertexBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, triangulos_participantes_VertexBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangulos_participantes), gl.STATIC_DRAW);
+        gl.vertexAttribPointer(program.aVertexPosition, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(program.aVertexPosition);
+
+        let triangulos_participantes_lines_IndexBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, triangulos_participantes_lines_IndexBuffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(triangulos_participantes_lines), gl.STATIC_DRAW);
+        gl.uniform4f(aColorLocation, ...corTriangulos);
+        gl.drawElements(gl.LINES, triangulos_participantes_lines.length, gl.UNSIGNED_SHORT, 0);
+      }
+
+      let m_n_VAO = gl.createVertexArray();
+      gl.bindVertexArray(m_n_VAO);
+      let m_n_VertexBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, m_n_VertexBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(reticulateBoxVertices), gl.STATIC_DRAW);
+      gl.vertexAttribPointer(program.aVertexPosition, 3, gl.FLOAT, false, 0, 0);
+      gl.enableVertexAttribArray(program.aVertexPosition);
+
+      let m_n_IndexBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m_n_IndexBuffer);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(reticulateBoxLines), gl.STATIC_DRAW);
+      gl.uniform4f(aColorLocation, ...corBorda);
+      gl.drawElements(gl.LINES, reticulateBoxLines.length, gl.UNSIGNED_SHORT, 0);
+
+      let curva_VAO = gl.createVertexArray();
+      gl.bindVertexArray(curva_VAO);
+      let curva_VertexBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, curva_VertexBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(cg_vertices), gl.STATIC_DRAW);
+      gl.vertexAttribPointer(program.aVertexPosition, 3, gl.FLOAT, false, 0, 0);
+      gl.enableVertexAttribArray(program.aVertexPosition);
+
+      let curva_IndexBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, curva_IndexBuffer);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cg_indexes), gl.STATIC_DRAW);
+      gl.uniform4f(aColorLocation, 0.5, 0.5, 1, 1);
+      gl.drawElements(gl.LINES, cg_indexes.length, gl.UNSIGNED_SHORT, 0);
+
+      // Clean
+      gl.bindVertexArray(null);
+      gl.bindBuffer(gl.ARRAY_BUFFER, null);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    }
+
+    function render() {
+      requestAnimationFrame(render);
+      draw();
+    }
+
+    function init() {
+      const canvas  = utils.getCanvas('webgl-canvas');
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      gl = utils.getGLContext(canvas);
+      gl.clearColor(0, 0, 0, 1);
+      // gl.enable(gl.DEPTH_TEST);
+
+      initProgram();
+      render();
+
+      QuickSettings.useExtStyleSheet();
+      setupPanel();
+    }
+
+    window.onload = init;
+  </script>
 </head>
+
 <body>
+
+<canvas id="webgl-canvas">
+  Your browser does not support the HTML5 canvas element.
+</canvas>
+
 </body>
 </html>
