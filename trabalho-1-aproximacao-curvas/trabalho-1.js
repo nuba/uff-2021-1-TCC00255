@@ -1,5 +1,5 @@
-let nivel             = 10;
-let funcao            = math.compile('3x^2 - 1/2y^2 -5');
+let nivel  = 10;
+let funcao = math.compile('3x^2 - 1/2y^2 -5');
 
 var expressao_wrapper = (x, y) => {
   return funcao.evaluate({x, y});
@@ -50,22 +50,22 @@ function reticulado_popula() {
   }
 }
 
-function verifica_triangulo(m_s, n_s, z1, z2, z3) {
-  z1_transladado = z1 - nivel;
-  z2_transladado = z2 - nivel;
-  z3_transladado = z3 - nivel;
+function verifica_triangulo(m_s, n_s, z0, z1, z2) {
+  let z0_ajustado = z0 - nivel,
+      z1_ajustado = z1 - nivel,
+      z2_ajustado = z2 - nivel;
 
   if (
-      z1_transladado > 0
-      && z2_transladado > 0
-      && z3_transladado > 0
+      z0_ajustado > 0
+      && z1_ajustado > 0
+      && z2_ajustado > 0
   ) {
     // todos os pontos do triângulo estão acima do plano de nível
   }
   else if (
-      z1_transladado < 0
-      && z2_transladado < 0
-      && z3_transladado < 0
+      z0_ajustado < 0
+      && z1_ajustado < 0
+      && z2_ajustado < 0
   ) {
     // todos os pontos do triângulo estão abaixo do plano de nível
   }
@@ -79,55 +79,31 @@ function verifica_triangulo(m_s, n_s, z1, z2, z3) {
     let p0_y = idx_to_value(n_s[0], n_min, n_increment);
     let p1_x = idx_to_value(m_s[1], m_min, m_increment);
     let p1_y = idx_to_value(n_s[1], n_min, n_increment);
-    if (Math.sign(z1_transladado) !== Math.sign(z2_transladado)) {
-      segmentos_que_cruzam_o_plano.push(
-          new LineSegment3d(
-              new Vector3d(
-                  p0_x,
-                  p0_y,
-                  z1,
-              ),
-              new Vector3d(
-                  p1_x,
-                  p1_y,
-                  z2,
-              ),
-          ),
-      );
-    }
-
     let p2_x = idx_to_value(m_s[2], m_min, m_increment);
     let p2_y = idx_to_value(n_s[2], n_min, n_increment);
-    if (Math.sign(z1_transladado) !== Math.sign(z3_transladado)) {
+
+    if (Math.sign(z0_ajustado) !== Math.sign(z1_ajustado)) {
       segmentos_que_cruzam_o_plano.push(
           new LineSegment3d(
-              new Vector3d(
-                  p0_x,
-                  p0_y,
-                  z1,
-              ),
-              new Vector3d(
-                  p2_x,
-                  p2_y,
-                  z3,
-              ),
+              new Vector3d(p0_x, p0_y, z0),
+              new Vector3d(p1_x, p1_y, z1),
+          ),
+      );
+    }
+    if (Math.sign(z0_ajustado) !== Math.sign(z2_ajustado)) {
+      segmentos_que_cruzam_o_plano.push(
+          new LineSegment3d(
+              new Vector3d(p0_x, p0_y, z0),
+              new Vector3d(p2_x, p2_y, z2),
           ),
       );
     }
 
-    if (Math.sign(z2_transladado) !== Math.sign(z3_transladado)) {
+    if (Math.sign(z1_ajustado) !== Math.sign(z2_ajustado)) {
       segmentos_que_cruzam_o_plano.push(
           new LineSegment3d(
-              new Vector3d(
-                  p1_x,
-                  p1_y,
-                  z2,
-              ),
-              new Vector3d(
-                  p2_x,
-                  p2_y,
-                  z3,
-              ),
+              new Vector3d(p1_x, p1_y, z1),
+              new Vector3d(p2_x, p2_y, z2),
           ),
       );
     }
@@ -140,13 +116,13 @@ function verifica_triangulo(m_s, n_s, z1, z2, z3) {
     if (pontos_de_intersecao.length === 2) {
       const line_idx = triangulos_participantes.length / 3;
       triangulos_participantes_lines.push(line_idx, line_idx + 1, line_idx + 1, line_idx + 2, line_idx + 2, line_idx);
-      triangulos_participantes.push(p0_x, p0_y, nivel, p1_x, p1_y, nivel, p2_x, p2_y, nivel);
+      triangulos_participantes.push(p0_x, p0_y, z0, p1_x, p1_y, z1, p2_x, p2_y, z2);
       aproximacao_da_curva.push(
           new LineSegment3d(pontos_de_intersecao[0], pontos_de_intersecao[1]),
       );
     }
     else {
-      console.log('wtf');
+      // console.log('wtf');
     }
   }
 
@@ -199,7 +175,7 @@ function doit() {
   updateParameters();
   reticulado_popula();
   reticulado_percorre();
-  console.log(aproximacao_da_curva);
+  // console.log(aproximacao_da_curva);
   cg_indexes  = aproximacao_da_curva.flatMap((s, idx) => [2 * idx, 2 * idx + 1]);
   cg_vertices = aproximacao_da_curva.flatMap(s => [s.p0.x, s.p0.y, s.p0.z, s.p1.x, s.p1.y, s.p1.z]);
 }

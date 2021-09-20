@@ -1,3 +1,5 @@
+
+// acabei portando direto pra dentro do shader
 function remap(x, oMin, oMax, nMin, nMax) {
   // range check
   if (oMin === oMax || nMin === nMax) {
@@ -25,9 +27,9 @@ function remap(x, oMin, oMax, nMin, nMax) {
 }
 
 // test cases
-console.log(remap(25.0, 0.0, 100.0, 1.0, -1.0), '==', 0.5);
-console.log(remap(25.0, 100.0, -100.0, -1.0, 1.0), '==', -0.25);
-console.log(remap(-125.0, -100.0, -200.0, 1.0, -1.0), '==', 0.5);
-console.log(remap(-125.0, -200.0, -100.0, -1.0, 1.0), '==', 0.5);
-// even when value is out of bound
-console.log(remap(-20.0, 0.0, 100.0, 0.0, 1.0), '==', -0.2);
+// console.log(remap(25.0, 0.0, 100.0, 1.0, -1.0), '==', 0.5);
+// console.log(remap(25.0, 100.0, -100.0, -1.0, 1.0), '==', -0.25);
+// console.log(remap(-125.0, -100.0, -200.0, 1.0, -1.0), '==', 0.5);
+// console.log(remap(-125.0, -200.0, -100.0, -1.0, 1.0), '==', 0.5);
+// // even when value is out of bound
+// console.log(remap(-20.0, 0.0, 100.0, 0.0, 1.0), '==', -0.2);
