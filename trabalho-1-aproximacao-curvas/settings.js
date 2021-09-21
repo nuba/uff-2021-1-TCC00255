@@ -15,15 +15,33 @@ settings = {
 
 let settingsPanel;
 
+let espressaoHandlerFn = function (value) {
+  let funcao_parseada  = math.parse(value);
+  let funcao_compilada = funcao_parseada.compile();
+  try {
+    funcao_compilada.evaluate({x: 1, y: 1});
+    funcao = funcao_compilada;
+    settingsPanel.setValue('Expressão parseada', '<span id="math">$$ ' + funcao_parseada.toTex() + ' $$</span>');
+    setTimeout(() => {
+      MathJax.typesetClear();
+      MathJax.typeset(document.querySelectorAll('#math'));
+    }, 10);
+  }
+  catch (e) {
+    console.log(e);
+  }
+
+};
+
 function setupPanel() {
+
   settingsPanel = QuickSettings
       .create(20, 20, 'Ajustes')
       .setGlobalChangeHandler(settingsChangedFn)
-
-      .addHTML('Função', 'Altura z da curva de nível e expressão')
+      .addHTML('Função', 'Altura z da curva de nível e expressão na forma z = f(x,y)')
       .bindRange('nivel', -100, 100, 10, 1, settings)
-      .bindText('expressao', '3x^2 - 1/2y^2 -5', settings)
-
+      .addText('expressao', '3x^2 - 1/2y^2 -5', espressaoHandlerFn)
+      .addHTML('Expressão parseada', '')
       .addHTML('Reticulado', 'Resolução da Discretização<BR>(m em X, n em Y)')
       .bindRange('m_intervals', 0, 200, 20, 1, settings)
       .bindRange('n_intervals', 0, 200, 20, 1, settings)
@@ -40,24 +58,62 @@ function setupPanel() {
       .addHTML('Extra', '')
       .bindBoolean('triangulosParticipantes', true, settings);
 
+  espressaoHandlerFn('3x^2 - 1/2y^2 -5');
   settingsChangedFn();
 
 }
 
-function settingsChangedFn() {
-  nivel  = settings.nivel;
-  funcao = math.compile(settings.expressao);
+function debounceWithThrottle(func, debouncewait, throttlewait, callatstart, callatend) {
+  var debouncetimeout, throttletimeout;
 
-  m_max       = settings.m_max;
-  m_min       = settings.m_min;
-  m_intervals = settings.m_intervals;
+  return function () {
+    var context = this, args = arguments;
 
-  n_max       = settings.n_max;
-  n_min       = settings.n_min;
-  n_intervals = settings.n_intervals;
+    if (callatstart && !debouncetimeout) {
+      func.apply(context, [].concat(args, 'start'));
+    }
 
-  desenharTriangulos = settings.triangulosParticipantes;
+    if (!throttletimeout && throttlewait > 0) {
+      throttletimeout = setInterval(function () {
+        func.apply(context, [].concat(args, 'during'));
+      }, throttlewait);
+    }
 
-  doit();
+    clearTimeout(debouncetimeout);
+    debouncetimeout = setTimeout(function () {
+      clearTimeout(throttletimeout);
+      throttletimeout = null;
+      debouncetimeout = null;
 
-}
+      if (callatend) {
+        func.apply(context, [].concat(args, 'end'));
+      }
+    }, debouncewait);
+  };
+};
+
+var settingsChangedFn = debounceWithThrottle(
+    function () {
+      let funcao_parseada = math.parse(settings.expressao);
+      nivel               = settings.nivel;
+      // funcao              = funcao_parseada.compile();
+      // settingsPanel.setValue('Expressão parseada', `<p>${funcao_parseada.toTex()}</p>`);
+      // MathJax.typeset();
+
+      m_max       = settings.m_max;
+      m_min       = settings.m_min;
+      m_intervals = settings.m_intervals;
+
+      n_max       = settings.n_max;
+      n_min       = settings.n_min;
+      n_intervals = settings.n_intervals;
+
+      desenharTriangulos = settings.triangulosParticipantes;
+
+      doit();
+
+    },
+    50,
+    50,
+    false,
+    true);
