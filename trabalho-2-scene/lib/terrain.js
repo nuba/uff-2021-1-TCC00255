@@ -1,5 +1,8 @@
 class Terrain {
-  reticulado = [];
+  reticulado               = [];
+  triangulos_vertices      = [];
+  triangulos_lines_indices = [];
+  triangulos_faces_indices = [];
 
   constructor({
     mMin = -100,
@@ -74,6 +77,48 @@ class Terrain {
     }
     else {
       console.log('uai, mas isso aqui era pra ser um quadrado perfeito!?...');
+    }
+  }
+
+  gera_triangulo(m_s, n_s) {
+
+    let p0 = this.reticulado[m_s[0]][n_s[0]];
+    let p1 = this.reticulado[m_s[1]][n_s[1]];
+    let p2 = this.reticulado[m_s[2]][n_s[2]];
+
+    const new_vertex_idx = this.triangulos_vertices.length / 3;
+
+    this.triangulos_faces_indices.push(new_vertex_idx, new_vertex_idx + 1, new_vertex_idx + 2);
+    // TODO normals?
+
+    // para desenhar linhas
+    this.triangulos_lines_indices.push(new_vertex_idx, new_vertex_idx + 1, new_vertex_idx + 1, new_vertex_idx + 2, new_vertex_idx + 2,
+        new_vertex_idx);
+
+    // vertices
+    this.triangulos_vertices.push(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
+
+  }
+  clean() {
+    this.reticulado.length               = 0;
+    this.triangulos_vertices.length      = 0;
+    this.triangulos_lines_indices.length = 0;
+  }
+
+  rebuild() {
+    this.clean();
+    this.buildReticulado();
+    this.buildTriangulos();
+  }
+
+  buildTriangulos() {
+    for (let m = 0; m < this.reticulado.length - 1; m++) {
+      for (let n = 0; n <= this.reticulado.length - 1; n++) {
+        // triangulo inferior
+        this.gera_triangulo([m, m, m + 1], [n, n + 1, n + 1]);
+        // triangulo superior
+        this.gera_triangulo([m, m + 1, m + 1], [n, n + 1, n]);
+      }
     }
   }
 }
