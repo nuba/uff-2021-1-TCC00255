@@ -1,0 +1,296 @@
+<!-- MIT License
+
+Copyright (c) 2018 Packt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE. -->
+
+<!--Este código é um reprodução, alteração ou extensão de parte dos códigos que podem ser obtidos em
+https://github.com/PacktPublishing/Real-Time-3D-Graphics-with-WebGL-2/blob/master/LICENSE  
+sob a licença acima especificada.
+-->
+<html>
+<head>
+  <title>UFF 2021-1 - TCC00255 - Trabalho 2</title>
+
+  <!-- libraries -->
+  <!--<link rel="stylesheet" href="../common/lib/normalize.css">-->
+  <script type="text/javascript" src="common/lib/dat.gui.js"></script>
+  <script type="text/javascript" src="common/lib/gl-matrix.js"></script>
+
+  <!-- modules -->
+  <script type="text/javascript" src="common/js/utils.js"></script>
+  <script type="text/javascript" src="refs/mystack.js"></script>
+  <script type="text/javascript" src="refs/shape.js"></script>
+  <script type="text/javascript" src="refs/shapes3d.js"></script>
+
+  <!-- vertex shader -->
+  <script id="vertex-shader" type="x-shader/x-vertex">
+    #version 300 es
+    precision mediump float;
+
+    in vec3 aVertexPosition;
+    in vec3 aVertexColor;
+    in vec3 aVertexNormal;
+    in vec2 aTextureCoordinate;
+
+    smooth out vec3 vColor; 
+    smooth out vec3 vNormal;
+    out vec2 vTextureCoordinate;
+
+    uniform mat4 uModelViewMatrix;
+    uniform mat4 uProjectionMatrix;
+
+
+    
+    void main(void) {
+      vColor = aVertexColor;
+      vNormal = aVertexNormal;
+      vTextureCoordinate = aTextureCoordinate;
+      gl_PointSize = 4.0;
+      gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
+     }
+
+
+ 
+  </script>
+
+  <!-- fragment shader -->
+  <script id="fragment-shader" type="x-shader/x-fragment">
+    #version 300 es
+    precision mediump float;
+
+    in vec3 vColor;
+    in vec3 vNormal;
+    in vec2 vTextureCoordinate;
+
+    out vec4 fragColor;
+
+    uniform mat4 uNormalMatrix;
+    uniform vec3 uLightPosition;
+    uniform vec4 uLightAmbient;
+    uniform vec4 uLightDiffuse;
+
+    uniform sampler2D uSampler;
+    uniform int uTextureActive;
+
+  
+    void main(void) {
+    
+      // Normal
+      vec4 color;
+    
+      if (uTextureActive==1){
+        color = texture(uSampler,vTextureCoordinate);
+      }
+      else{
+        color =  vec4(vColor,1.0);
+      }
+
+      vec3 N = vec3(uNormalMatrix * vec4(vNormal, 0.0));
+      // normalize normal after normal transform
+      N = normalize(N);
+      // Normalized light position
+      
+      vec3 L = normalize(uLightPosition);
+      float lambertTerm = dot(N, L);
+
+      if (lambertTerm == 0.0) {
+        lambertTerm = 0.01;
+      }
+
+      // Ambient
+      vec4 Ia = color * uLightAmbient;
+      // Diffuse
+      vec4 Id = color * uLightDiffuse * lambertTerm;
+
+      // Set varying to be used inside of fragment shader
+      fragColor = vec4(vec3(Ia + Id), 1.0);
+  }  
+  
+  </script>
+
+  <script type="text/javascript">
+    'use strict';
+
+    let gl,
+        program,
+
+        //Define o vetor de translação em z
+        translationVector = [0.0,0.0,-20.0],
+
+        //Define um vetor com ângulos de rotação em cada um dos eixos (x,y,z)
+        rotationVector = [15.0,15.0,0.0],
+
+        //Criar a matriz de camera e modelagem 4x4
+        modelViewMatrix,
+
+        //Cria a matriz de projeção 4x4
+        projectionMatrix,
+
+        // Global variable that captures the current rendering mode type
+        renderingMode = 'TRIANGLES',
+        myMatrixStack;
+
+    //Função que constroi um shader (Vertex ou Fragment shader)
+    function getShader(id) {
+      const script = document.getElementById(id);
+      const shaderString = script.text.trim();
+
+      let shader;
+      if (script.type === 'x-shader/x-vertex') {
+        shader = gl.createShader(gl.VERTEX_SHADER);
+      }
+      else if (script.type === 'x-shader/x-fragment') {
+        shader = gl.createShader(gl.FRAGMENT_SHADER);
+      }
+      else {
+        return null;
+      }
+
+      gl.shaderSource(shader, shaderString);
+      gl.compileShader(shader);
+
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(shader));
+        return null;
+      }
+
+      return shader;
+    }
+
+    function initProgram() {
+      const vertexShader = getShader('vertex-shader');
+      const fragmentShader = getShader('fragment-shader');
+
+      program = gl.createProgram();
+      gl.attachShader(program, vertexShader);
+      gl.attachShader(program, fragmentShader);
+      gl.linkProgram(program);
+
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error('Could not initialize shaders');
+      }
+
+      gl.useProgram(program);
+
+      program.aVertexPosition = gl.getAttribLocation(program, 'aVertexPosition');
+      program.aVertexColor = gl.getAttribLocation(program,'aVertexColor');
+      program.aVertexNormal = gl.getAttribLocation(program, 'aVertexNormal');
+
+      program.uModelViewMatrix = gl.getUniformLocation(program, 'uModelViewMatrix');
+      program.uNormalMatrix = gl.getUniformLocation(program, 'uNormalMatrix');
+      program.uProjectionMatrix = gl.getUniformLocation(program, 'uProjectionMatrix');
+
+      program.aTextureCoordinate = gl.getAttribLocation(program, 'aTextureCoordinate');
+      program.uTextureActive = gl.getUniformLocation(program, 'uTextureActive');
+      program.uSampler = gl.getUniformLocation(program, 'uSampler');
+
+      program.uLightPosition = gl.getUniformLocation(program, 'uLightPosition');
+      program.uLightAmbient = gl.getUniformLocation(program, 'uLightAmbient'); 
+      program.uLightDiffuse = gl.getUniformLocation(program, 'uLightDiffuse'); 
+      program.uMaterialDiffuse = gl.getUniformLocation(program, 'uMaterialDiffuse');
+      program.uWireframe = gl.getUniformLocation(program, 'uWireframe');
+
+    }
+
+    function computeNormalMatrix(modelViewMatrix){
+      var normalMatrix = mat4.create();
+      // define normal matrix s
+      mat4.identity(normalMatrix);
+      mat4.copy(normalMatrix, modelViewMatrix);
+      mat4.invert(normalMatrix, normalMatrix);
+      mat4.transpose(normalMatrix, normalMatrix);
+      return normalMatrix;
+    }
+
+    function setProgramMatrices(program,modelViewMatrix){
+        gl.uniformMatrix4fv(program.uModelViewMatrix, false, modelViewMatrix);
+        var normalMatrix = computeNormalMatrix(modelViewMatrix);
+        gl.uniformMatrix4fv(program.uNormalMatrix, false, normalMatrix);
+    }
+
+    function setCameraMatrices(){
+        //Atualiza as matrizes de transformação de câmera e projeção
+        var tv = vec3.create();
+        vec3.set(tv, translationVector[0], translationVector[1], translationVector[2]);
+        
+        mat4.identity(modelViewMatrix);
+        mat4.translate(modelViewMatrix,modelViewMatrix,tv);
+        mat4.rotateX(modelViewMatrix,modelViewMatrix,rotationVector[0]* Math.PI / 180);
+        mat4.rotateY(modelViewMatrix,modelViewMatrix,rotationVector[1]* Math.PI / 180);
+        mat4.rotateZ(modelViewMatrix,modelViewMatrix,rotationVector[2]* Math.PI / 180);
+
+        //Evia a matriz projeção para o shader
+        //gl.uniformMatrix4fv(program.uModelViewMatrix, false, modelViewMatrix);
+        //gl.uniformMatrix4fv(program.uNormalMatrix, false, normalMatrix); 
+        gl.uniformMatrix4fv(program.uProjectionMatrix, false, projectionMatrix);
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    }
+    
+    function render() {
+        setCameraMatrices();
+        // itera sobre elementos do cenário invocando draw
+    }
+
+
+    function init() {
+      const canvas = utils.getCanvas('webgl-canvas');
+
+      gl = utils.getGLContext(canvas);
+      gl.clearColor(0, 128, 128, 1);
+      gl.enable(gl.DEPTH_TEST);
+
+      initProgram();
+
+      // aqui cria a "paleta" de sólidos necessários
+
+
+      myMatrixStack = new MyStack();
+      var tv = vec3.create();
+      vec3.set(tv, translationVector[0], translationVector[1], translationVector[2]);
+      modelViewMatrix = mat4.create();
+      mat4.fromTranslation(modelViewMatrix,tv);
+
+      projectionMatrix = mat4.create();
+      //Cria a matriz de projeção com angulo de abertura de 45 graus, near plane = 0.1 e far_plane = 1000
+      mat4.identity(projectionMatrix);  
+      mat4.perspective(projectionMatrix, 45, gl.canvas.width / gl.canvas.height, 0.1, 1000);
+
+      // Configure lights
+      gl.uniform3fv(program.uLightPosition, [0, 100, 100]);
+      gl.uniform4fv(program.uLightAmbient, [0.10, 0.10, 0.10, 1]);
+      gl.uniform4fv(program.uLightDiffuse, [1, 1, 1, 1]);
+      gl.uniform1i(program.uSampler, 0);
+
+      render();
+    }
+
+    window.onload = init;
+  </script>
+</head>
+
+<body>
+
+  <canvas id="webgl-canvas" width="1024" height="512">
+    Your browser does not support the HTML5 canvas element.
+  </canvas>
+
+</body>
+</html>
