@@ -29,6 +29,7 @@ class Terrain {
     this.zValues           = zValues;
 
     this.buildReticulado(zValues, fatorInterpolacao, mMin, mMax, nMin, nMax);
+    this.buildTriangulos();
 
   }
 
