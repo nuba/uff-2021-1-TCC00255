@@ -1,6 +1,7 @@
 class Terrain {
   reticulado               = [];
   triangulos_vertices      = [];
+  triangulos_normals       = [];
   triangulos_lines_indices = [];
   triangulos_faces_indices = [];
 
@@ -27,7 +28,6 @@ class Terrain {
     this.fatorInterpolacao = fatorInterpolacao;
     this.zValues           = zValues;
 
-    let reticulado;
     this.buildReticulado(zValues, fatorInterpolacao, mMin, mMax, nMin, nMax);
 
   }
@@ -88,17 +88,32 @@ class Terrain {
 
     const new_vertex_idx = this.triangulos_vertices.length / 3;
 
-    this.triangulos_faces_indices.push(new_vertex_idx, new_vertex_idx + 1, new_vertex_idx + 2);
-    // TODO normals?
+    this.triangulos_vertices.push(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
+    let vec_normal = this.buildNormal(p1, p0, p2);
+    this.triangulos_normals.push(vec_normal[0], vec_normal[1], vec_normal[2]);
 
     // para desenhar linhas
-    this.triangulos_lines_indices.push(new_vertex_idx, new_vertex_idx + 1, new_vertex_idx + 1, new_vertex_idx + 2, new_vertex_idx + 2,
-        new_vertex_idx);
+    this.triangulos_lines_indices.push(
+        new_vertex_idx, new_vertex_idx + 1, new_vertex_idx + 1, new_vertex_idx + 2, new_vertex_idx + 2, new_vertex_idx);
+    this.triangulos_faces_indices.push(new_vertex_idx, new_vertex_idx + 1, new_vertex_idx + 2);
 
     // vertices
-    this.triangulos_vertices.push(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
 
   }
+
+  buildNormal(p1, p0, p2) {
+    let vec_1 = vec3.create();
+    vec3.set(vec_1, p1.x - p0.x, p1.y - p0.y, p1.z - p0.z);
+
+    let vec_2 = vec3.create();
+    vec3.set(vec_2, p2.x - p0.x, p2.y - p0.y, p2.z - p0.z);
+
+    let vec_normal = vec3.create();
+    vec3.cross(vec_normal, vec_1, vec_2);
+    vec3.normalize(vec_normal, vec_normal);
+    return vec_normal;
+  }
+
   clean() {
     this.reticulado.length               = 0;
     this.triangulos_vertices.length      = 0;
@@ -113,7 +128,7 @@ class Terrain {
 
   buildTriangulos() {
     for (let m = 0; m < this.reticulado.length - 1; m++) {
-      for (let n = 0; n <= this.reticulado.length - 1; n++) {
+      for (let n = 0; n < this.reticulado.length - 1; n++) {
         // triangulo inferior
         this.gera_triangulo([m, m, m + 1], [n, n + 1, n + 1]);
         // triangulo superior
