@@ -4,23 +4,19 @@ let gl,
     program,
 
     //Define o vetor de translação em z
-    translationVector = [0.0, 0.0, -20.0],
+    translationVector = [0, 0, -90],
 
     //Define um vetor com ângulos de rotação em cada um dos eixos (x,y,z)
-    rotationVector    = [15.0, 15.0, 0.0],
-
-    //Criar a matriz de camera e modelagem 4x4
-    modelViewMatrix,
+    rotationVector    = [-70, 0, -61],
 
     //Cria a matriz de projeção 4x4
     projectionMatrix,
 
     // Global variable that captures the current rendering mode type
     renderingMode     = 'TRIANGLES',
-    myMatrixStack;
 
-let texturedSphere;
-let terrain, water, stones;
+    // um unico objeto de modelo global, do tipo ModelTree
+    scene;
 
 //Função que constroi um shader (Vertex ou Fragment shader)
 function getShader(id) {
@@ -101,19 +97,8 @@ function setProgramMatrices(program, modelViewMatrix) {
 }
 
 function setCameraMatrices() {
-  //Atualiza as matrizes de transformação de câmera e projeção
-  var tv = vec3.create();
-  vec3.set(tv, translationVector[0], translationVector[1], translationVector[2]);
-
-  mat4.identity(modelViewMatrix);
-  mat4.translate(modelViewMatrix, modelViewMatrix, tv);
-  mat4.rotateX(modelViewMatrix, modelViewMatrix, rotationVector[0] * Math.PI / 180);
-  mat4.rotateY(modelViewMatrix, modelViewMatrix, rotationVector[1] * Math.PI / 180);
-  mat4.rotateZ(modelViewMatrix, modelViewMatrix, rotationVector[2] * Math.PI / 180);
-
-  //Evia a matriz projeção para o shader
-  //gl.uniformMatrix4fv(program.uModelViewMatrix, false, modelViewMatrix);
-  //gl.uniformMatrix4fv(program.uNormalMatrix, false, normalMatrix);
+  // Atualiza as matrizes de transformação de câmera e projeção
+  // Envia a matriz projeção para o shader
   gl.uniformMatrix4fv(program.uProjectionMatrix, false, projectionMatrix);
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -121,37 +106,12 @@ function setCameraMatrices() {
 
 function render() {
   setCameraMatrices();
-
-  // modelViewMatrix = drawMarble(modelViewMatrix);
-
-  // itera sobre elementos do cenário invocando draw
-  // terrain.draw(renderingMode);
-
-  setProgramMatrices(program, modelViewMatrix);
-  // texturedSphere.draw(renderingMode);
-  terrain.draw(renderingMode);
-  water.draw(renderingMode);
-  stones.draw(renderingMode);
-
-}
-
-function drawMarble(modelViewMatrix) {
-  myMatrixStack.push(mat4.clone(modelViewMatrix));
-  var tv = vec3.create();
-  vec3.set(tv, 0.0, -1.5, 10.0);
-  mat4.translate(modelViewMatrix, modelViewMatrix, tv);
-  // mat4.rotateX(modelViewMatrix,modelViewMatrix, 0.0 * Math.PI / 180);
-  var s = vec3.create();
-  vec3.set(s, 2.0, 2.0, 2.0);
-  mat4.scale(modelViewMatrix, modelViewMatrix, s);
-  setProgramMatrices(program, modelViewMatrix);
-  texturedSphere.draw(renderingMode);
-  modelViewMatrix = myMatrixStack.pop();
-  return modelViewMatrix;
+  scene.draw(renderingMode);
 }
 
 function init() {
   function logGLCall(functionName, args) {
+    return;
     console.log('gl.' + functionName + '(' +
                 WebGLDebugUtils.glFunctionArgsToString(functionName, args) + ')');
   }
@@ -182,92 +142,260 @@ function init() {
 
   initProgram();
 
-  // texturedSphere = new MySphere(
-  //     program,
-  //     gl,
-  //     100,
-  //     6,
-  //     6,
-  //     new Color(1.0,0.0,0.0),
-  //     // 'textures/Dirt01-1k/Dirt01 diffuse 1k.jpg'
-  //     'textures/milk-way-sofia.png',
-  // );
-
-  // // hack pras normais apontarem na direcao oposta
-  // texturedSphere.normals.forEach((n, idx, arr)=>{
-  //   arr[idx] = -n;
-  // });
-
   // aqui cria a "paleta" de sólidos necessários
-  terrain = new TerrainShape3d({
-    program,
-    gl,
-    color            : new Color(1.0, 0.0, 0.0),
-    textureName      : 'textures/Dirt01-1k/Dirt01 diffuse 1k.jpg',
-    mMin             : -50,
-    nMin             : -50,
-    mMax             : 50,
-    nMax             : 50,
-    fatorInterpolacao: 10,
+  let creatureCylinderBodyPart = new MyCylinder(
+      program,
+      gl,
+      1,
+      1,
+      16,
+      16,
+      new Color(1, 1, 0),
+      'textures/Plaster06-1k/Plasteryellow_diffuse 1k.png');
+  scene                        = new ModelTree({
+    translate   : [translationVector[0], translationVector[1], translationVector[2]],
+    rotate      : [rotationVector[0], rotationVector[1], rotationVector[2]],
+    scale       : [1, 1, 1],
+    childrenList: [
+      {
+        slug        : 'terrain',
+        model       : new TerrainShape3d({
+          program,
+          gl,
+          color            : new Color(1.0, 0.0, 0.0),
+          textureName      : 'textures/Dirt01-1k/Dirt01 diffuse 1k.jpg',
+          mMin             : -50,
+          nMin             : -50,
+          mMax             : 50,
+          nMax             : 50,
+          fatorInterpolacao: 20,
 
-    // zValues tem que ser uma matriz quadrada
-    zValues: [
-      [-1, 0, 0, 5, 5, 10, 10],
-      [-1, 0, 5, 5, 5, 10, 10],
-      [-1, 0, 5, 5, 5, 5, 5],
-      [-1, 0, 5, 5, 5, 5, 5],
-      [-1, 0, 5, 5, 5, -1, -1],
-      [-1, -1, -1, -1, -1, -1, -1],
-      [-1, -1, -1, -1, -1, -1, 0],
+          // zValues tem que ser uma matriz quadrada
+          zValues: [
+            [-1, 0, 0, 5, 5, 10, 10],
+            [-1, 0, 5, 5, 5, 10, 10],
+            [-1, 0, 5, 5, 5, 5, 5],
+            [-1, 0, 5, 5, 5, 5, 5],
+            [-1, 0, 5, 5, 5, -1, -1],
+            [-1, -1, -1, -1, -1, -1, -1],
+            [-1, -1, -1, -1, -1, -1, 0],
+          ],
+        }),
+        childrenList: [
+          {
+            slug     : 'monolito',
+            model    : new MyCube(program, gl, undefined, 'textures/leather07-1k/leather07 diffuse 1k.png'),
+            scale    : [1, 4, 9],
+            translate: [0, 0, 14],
+          },
+          {
+            slug        : 'hand',
+            translate   : [8, -24, 6.5],
+            rotate      : [90, 90, 10],
+            childrenList: [
+              {
+                slug     : 'opositor1',
+                scale    : [1.2, 0.8, 1.7],
+                rotate   : [0, -75, 0],
+                // translate: [-1, 0, 1],
+                translate: [-3, 0, 0],
+                model    : creatureCylinderBodyPart,
+                childrenList: [
+                  {
+                    slug        : 'opositor2',
+                    model       : creatureCylinderBodyPart,
+                    scale       : [0.9, 0.9, 2.7],
+                    rotate      : [15, 55, 0],
+                    translate   : [0, -0.2, 1.6],
+                    childrenList: [
+                      {
+                        slug     : 'opositor3',
+                        model    : creatureCylinderBodyPart,
+                        scale    : [0.6, 0.6, 1.5],
+                        rotate   : [5, 20, 0],
+                        translate: [0, 0, 2.7]
+                      },
+                    ],
+                  },
+                ]
+              },
+              {
+                slug        : 'miolo1',
+                scale       : [3, 1, 3],
+                rotate      : [0, 0, 0],
+                translate   : [0, 0, 0],
+                model       : creatureCylinderBodyPart,
+                childrenList: [
+                  {
+                    slug        : 'miolo2',
+                    scale       : [3, 1, 2],
+                    rotate      : [10, 0, 0],
+                    translate   : [0, 0, 3],
+                    model       : creatureCylinderBodyPart,
+                    childrenList: [
+                      {
+                        slug        : 'd1a',
+                        model       : creatureCylinderBodyPart,
+                        scale       : [0.5, 0.5, 2.5],
+                        rotate      : [10, 0, 0],
+                        translate   : [-2.5, 0, 2],
+                        childrenList: [
+                          {
+                            slug     : 'd1b',
+                            model    : creatureCylinderBodyPart,
+                            scale    : [0.4, 0.4, 2],
+                            rotate   : [15, 0, 0],
+                            translate: [0, 0, 2.5],
+                            childrenList: [
+                              {
+                                slug     : 'd1c',
+                                model    : creatureCylinderBodyPart,
+                                scale    : [0.3, 0.3, 1.5],
+                                rotate   : [10, 0, 0],
+                                translate: [0, 0, 2],
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                      {
+                        slug        : 'd2a',
+                        model       : creatureCylinderBodyPart,
+                        scale       : [0.5, 0.5, 2.8],
+                        rotate      : [10, 0, 0],
+                        translate   : [-1, 0, 2],
+                        childrenList: [
+                          {
+                            slug     : 'd2b',
+                            model    : creatureCylinderBodyPart,
+                            scale    : [0.4, 0.4, 2.2],
+                            rotate   : [15, 0, 0],
+                            translate: [0, 0, 2.8],
+                            childrenList: [
+                              {
+                                slug     : 'd2c',
+                                model    : creatureCylinderBodyPart,
+                                scale    : [0.3, 0.3, 1.5],
+                                rotate   : [10, 0, 0],
+                                translate: [0, 0, 2.2],
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                      {
+                        slug        : 'd3a',
+                        model       : creatureCylinderBodyPart,
+                        scale       : [0.5, 0.5, 2.6],
+                        rotate      : [10, 0, 0],
+                        translate   : [1, 0, 2],
+                        childrenList: [
+                          {
+                            slug     : 'd3b',
+                            model    : creatureCylinderBodyPart,
+                            scale    : [0.4, 0.4, 1.7],
+                            rotate   : [15, 0, 0],
+                            translate: [0, 0, 2.6],
+                            childrenList: [
+                              {
+                                slug     : 'd3c',
+                                model    : creatureCylinderBodyPart,
+                                scale    : [0.3, 0.3, 1.5],
+                                rotate   : [10, 0, 0],
+                                translate: [0, 0, 1.7],
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                      {
+                        slug     : 'd4',
+                        model    : creatureCylinderBodyPart,
+                        scale    : [0.5, 0.5, 2],
+                        rotate   : [0, 0, 0],
+                        translate: [2.5, 0, 2],
+                        childrenList: [
+                          {
+                            slug     : 'd4b',
+                            model    : creatureCylinderBodyPart,
+                            scale    : [0.4, 0.4, 1.5],
+                            rotate   : [15, 0, 0],
+                            translate: [0, 0, 2],
+                            childrenList: [
+                              {
+                                slug     : 'd4c',
+                                model    : creatureCylinderBodyPart,
+                                scale    : [0.3, 0.3, 1.2],
+                                rotate   : [10, 0, 0],
+                                translate: [0, 0, 1.5],
+                              },
+                            ],
+                          },
+
+                        ]
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                slug     : 'base',
+                scale    : [3.2, 1, 3],
+                rotate   : [-10, 180, 0],
+                translate: [-0.5, 0, 0.5],
+                model    : creatureCylinderBodyPart
+              }
+            ],
+          },
+        ],
+      },
+      {
+        slug : 'water',
+        model: new TerrainShape3d({
+          program,
+          gl,
+          color            : new Color(1.0, 0.0, 0.0),
+          textureName      : 'textures/Marble01-1k/Marble01 diffuse 1k.jpg',
+          mMin             : -50,
+          nMin             : -50,
+          mMax             : 50,
+          nMax             : 50,
+          fatorInterpolacao: 1,
+
+          // zValues tem que ser uma matriz quadrada
+          zValues: [
+            [0, 0],
+            [0, 0],
+          ],
+        }),
+      },
+      {
+        slug : 'stones',
+        model: new TerrainShape3d({
+          program,
+          gl,
+          color            : new Color(1.0, 0.0, 0.0),
+          textureName      : 'textures/Forest03-1k/Forest03 diffuse 1k.jpg',
+          mMin             : -50,
+          nMin             : -50,
+          mMax             : 50,
+          nMax             : 50,
+          fatorInterpolacao: 3,
+
+          // zValues tem que ser uma matriz quadrada
+          zValues: [
+            [15, 15, 15, 15, 15, 15, 15],
+            [-5, -5, 15, 15, -5, 10, 10],
+            [-5, -5, -5, -5, -5, -5, 5],
+            [-5, -5, -5, -5, -5, -5, 5],
+            [-5, -5, -5, -5, -5, -5, -5],
+            [-5, -5, -5, -5, -5, -5, 5],
+            [10, 5, -5, -5, -5, -5, 15],
+          ],
+        }),
+      },
     ],
   });
-
-  water  = new TerrainShape3d({
-    program,
-    gl,
-    color            : new Color(1.0, 0.0, 0.0),
-    textureName      : 'textures/Marble01-1k/Marble01 diffuse 1k.jpg',
-    mMin             : -50,
-    nMin             : -50,
-    mMax             : 50,
-    nMax             : 50,
-    fatorInterpolacao: 1,
-
-    // zValues tem que ser uma matriz quadrada
-    zValues: [
-      [0, 0],
-      [0, 0],
-    ],
-  });
-
-  stones = new TerrainShape3d({
-    program,
-    gl,
-    color            : new Color(1.0, 0.0, 0.0),
-    textureName      : 'textures/Forest03-1k/Forest03 diffuse 1k.jpg',
-    mMin             : -50,
-    nMin             : -50,
-    mMax             : 50,
-    nMax             : 50,
-    fatorInterpolacao: 3,
-
-    // zValues tem que ser uma matriz quadrada
-    zValues: [
-      [15, 15, 15, 15, 15, 15, 15],
-      [-5, -5, 15, 15, -5, 10, 10],
-      [-5, -5, -5, -5, -5, -5, 5],
-      [-5, -5, -5, -5, -5, -5, 5],
-      [-5, -5, -5, -5, -5, -5, -5],
-      [-5, -5, -5, -5, -5, -5, 5],
-      [10, 5, -5, -5, -5, -5, 15],
-    ],
-  });
-
-  myMatrixStack = new MyStack();
-  var tv        = vec3.create();
-  vec3.set(tv, translationVector[0], translationVector[1], translationVector[2]);
-  modelViewMatrix = mat4.create();
-  mat4.fromTranslation(modelViewMatrix, tv);
 
   projectionMatrix = mat4.create();
   //Cria a matriz de projeção com angulo de abertura de 45 graus, near plane = 0.1 e far_plane = 1000
@@ -281,7 +409,6 @@ function init() {
   gl.uniform1i(program.uSampler, 0);
 
   render();
-
   initControls();
 
 }
@@ -311,41 +438,6 @@ function initControls() {
       },
     },
 
-    /*
-     'RotationAngle': {
-     value: rotationAngle,
-     min : 0.0,
-     max : 2*Math.PI,
-     step: 0.001,
-     onChange(v,state){
-     rotationAngle = v;
-     var tv = vec3.create();
-     vec3.set(tv, translationVector[0], translationVector[1], translationVector[2]);
-     mat4.identity(modelViewMatrix);
-     mat4.translate(modelViewMatrix,modelViewMatrix,tv);
-     mat4.rotateZ(modelViewMatrix,modelViewMatrix,rotationAngle);
-     gl.uniformMatrix4fv(program.uModelViewMatrix, false, modelViewMatrix);
-
-     gl.uniformMatrix4fv(program.uProjectionMatrix, false, projectionMatrix);
-
-     render();
-     }
-     }, */
-
-    /*
-     'TranslateX':{
-     value: translationVector[0],
-     min:-1.0,
-     max: 1.0,
-     step:0.01,
-     onChange(v, state){
-     mat4.identity(modelViewMatrix);
-     mat4.translate(modelViewMatrix,modelViewMatrix,[v,translationVector[0],0,0]);
-     gl.uniformMatrix4fv(program.uModelViewMatrix, false, modelViewMatrix);
-     render();
-     }
-     } */
-
     // reduce receives a function and the initial value (below the initial value is {})
     // result is the inital value or the return of the previous call to the function
     // Spread all values from the reduce onto the controls
@@ -356,7 +448,7 @@ function initControls() {
         max  : 100,
         step : 0.01,
         onChange(v, state) {
-          translationVector[i] = v;
+          scene.translate[i] = v;
           render();
         },
       };
@@ -368,53 +460,18 @@ function initControls() {
         value: rotationVector[i],
         min  : -180, max: 180, step: 0.000001,
         onChange(v, state) {
-          rotationVector = [
+          rotationVector  = [
             state['Rotate X'],
             state['Rotate Y'],
             state['Rotate Z'],
           ];
+          scene.rotate[i] = v;
           render();
 
         },
       };
       return result;
     }, {}),
-
-    // ...['Rotate Hip X', 'Rotate Hip Y', 'Rotate Hip Z'].reduce((result, name, i) => {
-    //   result[name] = {
-    //     value: hipRotationVector[i],
-    //     min: -45, max: 45, step: 0.000001,
-    //     onChange(v, state) {
-    //       hipRotationVector = [
-    //         state['Rotate Hip X'],
-    //         state['Rotate Hip Y'],
-    //         state['Rotate Hip Z']
-    //       ];
-    //       mouse.hipRotationVector = hipRotationVector;
-    //       render();
-    //
-    //     }
-    //   };
-    //   return result;
-    // }, {}),
-
-    // ...['Rotate Head X', 'Rotate Head Y', 'Rotate Head Z'].reduce((result, name, i) => {
-    //   result[name] = {
-    //     value: headRotationVector[i],
-    //     min: -45, max: 45, step: 0.000001,
-    //     onChange(v, state) {
-    //       headRotationVector = [
-    //         state['Rotate Head X'],
-    //         state['Rotate Head Y'],
-    //         state['Rotate Head Z']
-    //       ];
-    //       mouse.headRotationVector = headRotationVector;
-    //       render();
-    //
-    //     }
-    //   };
-    //   return result;
-    // }, {})
 
   });
 }

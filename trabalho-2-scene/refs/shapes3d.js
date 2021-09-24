@@ -99,6 +99,7 @@ class Shape3d{
 
 
 class MyCube extends Shape3d{
+  colors = [];
   constructor(program,gl,color,textureName){
     super(program,gl,color,textureName);
 
