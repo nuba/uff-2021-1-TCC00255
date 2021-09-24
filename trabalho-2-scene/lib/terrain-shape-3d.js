@@ -1,3 +1,5 @@
+// class TerrainShape3d {}
+
 class TerrainShape3d {
   shape3d;
   terrain;
@@ -21,13 +23,13 @@ class TerrainShape3d {
   }) {
 
     this.terrain = new Terrain({mMin, nMin, mMax, nMax, fatorInterpolacao, zValues});
-    // this.shape3d = new Shape3d(program, gl, color, textureName);
-    this.shape3d = new Shape3d(program, gl, color, undefined);
+    this.shape3d = new Shape3d(program, gl, color, textureName);
+    // this.shape3d = new Shape3d(program, gl, color, undefined);
 
     this.shape3d.indices = this.terrain.triangulos_faces_indices;
     this.shape3d.indicesLines = this.terrain.triangulos_lines_indices;
     this.shape3d.vertices  = this.terrain.triangulos_vertices;
-    this.shape3d.normals = this.terrain.triangulos_normals;
+    this.shape3d.normals = this.terrain.triangulos_vertices_normals;
     this.shape3d.colors = [];
 
     for (let i=0; i < this.terrain.triangulos_vertices.length / 3; i++) {
@@ -86,13 +88,11 @@ class TerrainShape3d {
     // Depending on the rendering mode type, we will draw differently
     switch (renderingMode) {
       case 'TRIANGLES': {
-        gl.bindVertexArray(this.shape3d.IBO);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.terrain.triangulos_faces_indices), gl.STATIC_DRAW);
         gl.drawElements(gl.TRIANGLES, this.terrain.triangulos_faces_indices.length, gl.UNSIGNED_SHORT, 0);
         break;
       }
       case 'LINES': {
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.shape3d.IBO);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.terrain.triangulos_lines_indices), gl.STATIC_DRAW);
         gl.drawElements(gl.LINES, this.terrain.triangulos_lines_indices.length, gl.UNSIGNED_SHORT, 0);
         break;

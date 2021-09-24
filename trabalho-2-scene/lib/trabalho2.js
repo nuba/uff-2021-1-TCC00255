@@ -20,7 +20,7 @@ let gl,
     myMatrixStack;
 
 let texturedSphere;
-let terrain;
+let terrain, water, stones;
 
 //Função que constroi um shader (Vertex ou Fragment shader)
 function getShader(id) {
@@ -124,26 +124,27 @@ function render() {
 
   // modelViewMatrix = drawMarble(modelViewMatrix);
 
-
   // itera sobre elementos do cenário invocando draw
   // terrain.draw(renderingMode);
 
-  setProgramMatrices(program,modelViewMatrix);
+  setProgramMatrices(program, modelViewMatrix);
+  // texturedSphere.draw(renderingMode);
   terrain.draw(renderingMode);
-
+  water.draw(renderingMode);
+  stones.draw(renderingMode);
 
 }
 
-function drawMarble(modelViewMatrix){
+function drawMarble(modelViewMatrix) {
   myMatrixStack.push(mat4.clone(modelViewMatrix));
   var tv = vec3.create();
-  vec3.set(tv, 0.0, -1.5,10.0);
-  mat4.translate(modelViewMatrix,modelViewMatrix,tv);
+  vec3.set(tv, 0.0, -1.5, 10.0);
+  mat4.translate(modelViewMatrix, modelViewMatrix, tv);
   // mat4.rotateX(modelViewMatrix,modelViewMatrix, 0.0 * Math.PI / 180);
   var s = vec3.create();
-  vec3.set(s,2.0,2.0,2.0);
-  mat4.scale(modelViewMatrix,modelViewMatrix,s)
-  setProgramMatrices(program,modelViewMatrix);
+  vec3.set(s, 2.0, 2.0, 2.0);
+  mat4.scale(modelViewMatrix, modelViewMatrix, s);
+  setProgramMatrices(program, modelViewMatrix);
   texturedSphere.draw(renderingMode);
   modelViewMatrix = myMatrixStack.pop();
   return modelViewMatrix;
@@ -151,29 +152,30 @@ function drawMarble(modelViewMatrix){
 
 function init() {
   function logGLCall(functionName, args) {
-    console.log("gl." + functionName + "(" +
-                WebGLDebugUtils.glFunctionArgsToString(functionName, args) + ")");
+    console.log('gl.' + functionName + '(' +
+                WebGLDebugUtils.glFunctionArgsToString(functionName, args) + ')');
   }
 
   function validateNoneOfTheArgsAreUndefined(functionName, args) {
     for (var ii = 0; ii < args.length; ++ii) {
       if (args[ii] === undefined) {
-        console.error("undefined passed to gl." + functionName + "(" +
-                      WebGLDebugUtils.glFunctionArgsToString(functionName, args) + ")");
+        console.error('undefined passed to gl.' + functionName + '(' +
+                      WebGLDebugUtils.glFunctionArgsToString(functionName, args) + ')');
       }
     }
   }
 
   function logAndValidate(functionName, args) {
     logGLCall(functionName, args);
-    validateNoneOfTheArgsAreUndefined (functionName, args);
+    validateNoneOfTheArgsAreUndefined(functionName, args);
   }
 
-  const canvas = utils.getCanvas('webgl-canvas');
+  const canvas  = utils.getCanvas('webgl-canvas');
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
 
   gl = utils.getGLContext(canvas);
   gl = WebGLDebugUtils.makeDebugContext(gl, undefined, logAndValidate);
-
 
   gl.clearColor(0, 128, 128, 1);
   gl.enable(gl.DEPTH_TEST);
@@ -183,32 +185,81 @@ function init() {
   // texturedSphere = new MySphere(
   //     program,
   //     gl,
-  //     1.0,
-  //     32,
-  //     32,
+  //     100,
+  //     6,
+  //     6,
   //     new Color(1.0,0.0,0.0),
-  //     "../refs/tiles06 diffuse 1k.jpg"
+  //     // 'textures/Dirt01-1k/Dirt01 diffuse 1k.jpg'
+  //     'textures/milk-way-sofia.png',
   // );
 
+  // // hack pras normais apontarem na direcao oposta
+  // texturedSphere.normals.forEach((n, idx, arr)=>{
+  //   arr[idx] = -n;
+  // });
 
   // aqui cria a "paleta" de sólidos necessários
   terrain = new TerrainShape3d({
     program,
     gl,
-    color: new Color(1.0,0.0,0.0),
-    textureName: '../refs/tiles06 diffuse 1k.jpg',
-    mMin : -20,
-    nMin : -20,
-    mMax : 20,
-    nMax : 20,
+    color            : new Color(1.0, 0.0, 0.0),
+    textureName      : 'textures/Dirt01-1k/Dirt01 diffuse 1k.jpg',
+    mMin             : -50,
+    nMin             : -50,
+    mMax             : 50,
+    nMax             : 50,
+    fatorInterpolacao: 10,
+
+    // zValues tem que ser uma matriz quadrada
+    zValues: [
+      [-1, 0, 0, 5, 5, 10, 10],
+      [-1, 0, 5, 5, 5, 10, 10],
+      [-1, 0, 5, 5, 5, 5, 5],
+      [-1, 0, 5, 5, 5, 5, 5],
+      [-1, 0, 5, 5, 5, -1, -1],
+      [-1, -1, -1, -1, -1, -1, -1],
+      [-1, -1, -1, -1, -1, -1, 0],
+    ],
+  });
+
+  water  = new TerrainShape3d({
+    program,
+    gl,
+    color            : new Color(1.0, 0.0, 0.0),
+    textureName      : 'textures/Marble01-1k/Marble01 diffuse 1k.jpg',
+    mMin             : -50,
+    nMin             : -50,
+    mMax             : 50,
+    nMax             : 50,
     fatorInterpolacao: 1,
 
     // zValues tem que ser uma matriz quadrada
     zValues: [
-      [1, 2, 4, 5],
-      [1, 3, 3, 2],
-      [3, 3, 3, 2],
-      [5, 2, 2, 1],
+      [0, 0],
+      [0, 0],
+    ],
+  });
+
+  stones = new TerrainShape3d({
+    program,
+    gl,
+    color            : new Color(1.0, 0.0, 0.0),
+    textureName      : 'textures/Forest03-1k/Forest03 diffuse 1k.jpg',
+    mMin             : -50,
+    nMin             : -50,
+    mMax             : 50,
+    nMax             : 50,
+    fatorInterpolacao: 3,
+
+    // zValues tem que ser uma matriz quadrada
+    zValues: [
+      [15, 15, 15, 15, 15, 15, 15],
+      [-5, -5, 15, 15, -5, 10, 10],
+      [-5, -5, -5, -5, -5, -5, 5],
+      [-5, -5, -5, -5, -5, -5, 5],
+      [-5, -5, -5, -5, -5, -5, -5],
+      [-5, -5, -5, -5, -5, -5, 5],
+      [10, 5, -5, -5, -5, -5, 15],
     ],
   });
 
@@ -233,19 +284,18 @@ function init() {
 
   initControls();
 
-
 }
 
 function initControls() {
 
-  var axis = ["x","y","z"];
+  var axis = ['x', 'y', 'z'];
 
   // A wrapper around dat.GUI interface for a simpler API
   // for the purpose of this book
   utils.configureControls({
     'Rendering Mode': {
-      value: renderingMode,
-      options: [
+      value   : renderingMode,
+      options : [
         'TRIANGLES',
         'LINES',
         // 'POINTS'
@@ -255,10 +305,11 @@ function initControls() {
          'TRIANGLE_STRIP',
          'TRIANGLE_FAN'*/
       ],
-      onChange: v => {renderingMode = v;render();}
+      onChange: v => {
+        renderingMode = v;
+        render();
+      },
     },
-
-
 
     /*
      'RotationAngle': {
@@ -301,35 +352,33 @@ function initControls() {
     ...['Translate X', 'Translate Y', 'TranslateZ'].reduce((result, name, i) => {
       result[name] = {
         value: translationVector[i],
-        min: -100,
-        max: 100,
-        step: 0.01,
-        onChange(v, state){
+        min  : -100,
+        max  : 100,
+        step : 0.01,
+        onChange(v, state) {
           translationVector[i] = v;
           render();
-        }
+        },
       };
       return result;
     }, {}),
-
 
     ...['Rotate X', 'Rotate Y', 'Rotate Z'].reduce((result, name, i) => {
       result[name] = {
         value: rotationVector[i],
-        min: -180, max: 180, step: 0.000001,
+        min  : -180, max: 180, step: 0.000001,
         onChange(v, state) {
           rotationVector = [
             state['Rotate X'],
             state['Rotate Y'],
-            state['Rotate Z']
+            state['Rotate Z'],
           ];
           render();
 
-        }
+        },
       };
       return result;
     }, {}),
-
 
     // ...['Rotate Hip X', 'Rotate Hip Y', 'Rotate Hip Z'].reduce((result, name, i) => {
     //   result[name] = {
@@ -367,9 +416,7 @@ function initControls() {
     //   return result;
     // }, {})
 
-
-  })
+  });
 }
-
 
 window.onload = init;

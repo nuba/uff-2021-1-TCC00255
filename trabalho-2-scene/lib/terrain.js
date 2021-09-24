@@ -4,6 +4,7 @@ class Terrain {
   triangulos_normals       = [];
   triangulos_lines_indices = [];
   triangulos_faces_indices = [];
+  triangulos_vertices_normals = [];
 
   constructor({
     mMin = -100,
@@ -90,8 +91,16 @@ class Terrain {
     const new_vertex_idx = this.triangulos_vertices.length / 3;
 
     this.triangulos_vertices.push(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
-    let vec_normal = this.buildNormal(p1, p0, p2);
+    let vec_normal = this.buildSurfaceNormal(p1, p0, p2);
+
     this.triangulos_normals.push(vec_normal[0], vec_normal[1], vec_normal[2]);
+
+    // atalho: repetindo as surface normals como vertex normals
+    this.triangulos_vertices_normals.push(
+        vec_normal[0], vec_normal[1], vec_normal[2],
+        vec_normal[0], vec_normal[1], vec_normal[2],
+        vec_normal[0], vec_normal[1], vec_normal[2]
+    )
 
     // para desenhar linhas
     this.triangulos_lines_indices.push(
@@ -102,7 +111,7 @@ class Terrain {
 
   }
 
-  buildNormal(p1, p0, p2) {
+  buildSurfaceNormal(p1, p0, p2) {
     let vec_1 = vec3.create();
     vec3.set(vec_1, p1.x - p0.x, p1.y - p0.y, p1.z - p0.z);
 
