@@ -10,7 +10,7 @@ class ModelTree {
     this.scale     = scale;
     childrenList.forEach(
         childParameters => {
-          const childSlug = childParameters.slug;
+          const childSlug          = childParameters.slug;
           this.children[childSlug] = new ModelTreeNode(childParameters);
         });
   }
@@ -41,9 +41,21 @@ class ModelTree {
     mat4.scale(modelViewMatrix, modelViewMatrix, s);
   }
 
+  setAttribute(pathString, attribute, value) {
+    let path = _.split(pathString, '.');
+    if (path.length === 1) {
+      _.set(this.children[path[0]], attribute, value);
+    }
+    else if (path.length !== 0) {
+      const targetSlug = path.shift();
+      this.children[targetSlug].setAttribute(path, attribute, value);
+    }
+  }
+
 }
 
 class ModelTreeNode {
+  enabled  = true;
   slug;
   model;
   children = {};
@@ -73,39 +85,54 @@ class ModelTreeNode {
         });
   }
 
-  setAttributes(path, attribute, value) {
-    if (path.length === 0) {
-      this[attribute] = value;
+  setAttribute(path, attribute, value) {
+    if (path.length === 1) {
+      _.set(this.children[path[0]], attribute, value);
     }
-    else {
+    else if (path.length !== 0) {
       const targetSlug = path.shift();
       this.children[targetSlug].setAttribute(path, attribute, value);
     }
   }
 
   draw(parentModelViewMatrix, renderingMode) {
+    if (!this.enabled) {
+      return;
+    }
     console.log('objeto %s draw()', this.slug);
+
     // ao invés de gerenciar manualmente um stack de matrizes,
     // deixo para a linguagem gerenciar um stack de recursao
+
     let modelViewMatrix = mat4.clone(parentModelViewMatrix);
     this.applyTranslationRotation(modelViewMatrix);
+
+    if (this.model) {
+      this.drawChildren(modelViewMatrix, renderingMode);
+      this.applyScale(modelViewMatrix);
+      this.drawSelf(modelViewMatrix, renderingMode);
+    }
+    else {
+      this.applyScale(modelViewMatrix);
+      this.drawChildren(modelViewMatrix, renderingMode);
+    }
+  }
+
+  drawSelf(modelViewMatrix, renderingMode) {
+    // FIXME gambiarra pra diferenciar shape3D (prof) de shape3d wrapped (meu)
+    setProgramMatrices(
+        !!this.model.shape3d && !!this.model.shape3d.program
+        ? this.model.shape3d.program
+        : this.model.program,
+        modelViewMatrix,
+    );
+    this.model.draw(renderingMode);
+  }
+
+  drawChildren(modelViewMatrix, renderingMode) {
     for (const [childSlug, childNode] of Object.entries(this.children)) {
       console.log('%s drawing child %s', this.slug, childSlug);
       childNode.draw(modelViewMatrix, renderingMode);
-    }
-    this.applyScale(modelViewMatrix);
-
-    if (this.model) {
-      // FIXME gambiarra pra diferenciar shape3D (prof) de shape3d wrapped (meu)
-      if (this.model.shape3d && this.model.shape3d.program) {
-        setProgramMatrices(this.model.shape3d.program, modelViewMatrix);
-      } else if (this.model.program) {
-        setProgramMatrices(this.model.program, modelViewMatrix);
-      }
-      this.model.draw(renderingMode);
-    } else {
-      // esse nó na árvore serviu apenas para criar um sistema de referencia
-      // para um grupo de modelos
     }
   }
 

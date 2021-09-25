@@ -142,7 +142,6 @@ function init() {
 
   initProgram();
 
-  // aqui cria a "paleta" de sólidos necessários
   let creatureCylinderBodyPart = new MyCylinder(
       program,
       gl,
@@ -152,6 +151,7 @@ function init() {
       16,
       new Color(1, 1, 0),
       'textures/Plaster06-1k/Plasteryellow_diffuse 1k.png');
+
   scene                        = new ModelTree({
     translate   : [translationVector[0], translationVector[1], translationVector[2]],
     rotate      : [rotationVector[0], rotationVector[1], rotationVector[2]],
@@ -168,8 +168,7 @@ function init() {
           nMin             : -50,
           mMax             : 50,
           nMax             : 50,
-          fatorInterpolacao: 20,
-
+          fatorInterpolacao: 15,
           // zValues tem que ser uma matriz quadrada
           zValues: [
             [-1, 0, 0, 5, 5, 10, 10],
@@ -192,14 +191,14 @@ function init() {
             slug        : 'hand',
             translate   : [8, -24, 6.5],
             rotate      : [90, 90, 10],
+            scale       : [1, 1, 1],
             childrenList: [
               {
-                slug     : 'opositor1',
-                scale    : [1.2, 0.8, 1.7],
-                rotate   : [0, -75, 0],
-                // translate: [-1, 0, 1],
-                translate: [-3, 0, 0],
-                model    : creatureCylinderBodyPart,
+                slug  : 'opositor1',
+                scale : [1.2, 0.8, 1.7],
+                rotate: [0, -75, 0],
+                translate   : [-3, 0, 0],
+                model       : creatureCylinderBodyPart,
                 childrenList: [
                   {
                     slug        : 'opositor2',
@@ -213,11 +212,11 @@ function init() {
                         model    : creatureCylinderBodyPart,
                         scale    : [0.6, 0.6, 1.5],
                         rotate   : [5, 20, 0],
-                        translate: [0, 0, 2.7]
+                        translate: [0, 0, 2.7],
                       },
                     ],
                   },
-                ]
+                ],
               },
               {
                 slug        : 'miolo1',
@@ -241,11 +240,11 @@ function init() {
                         translate   : [-2.5, 0, 2],
                         childrenList: [
                           {
-                            slug     : 'd1b',
-                            model    : creatureCylinderBodyPart,
-                            scale    : [0.4, 0.4, 2],
-                            rotate   : [15, 0, 0],
-                            translate: [0, 0, 2.5],
+                            slug        : 'd1b',
+                            model       : creatureCylinderBodyPart,
+                            scale       : [0.4, 0.4, 2],
+                            rotate      : [15, 0, 0],
+                            translate   : [0, 0, 2.5],
                             childrenList: [
                               {
                                 slug     : 'd1c',
@@ -266,11 +265,11 @@ function init() {
                         translate   : [-1, 0, 2],
                         childrenList: [
                           {
-                            slug     : 'd2b',
-                            model    : creatureCylinderBodyPart,
-                            scale    : [0.4, 0.4, 2.2],
-                            rotate   : [15, 0, 0],
-                            translate: [0, 0, 2.8],
+                            slug        : 'd2b',
+                            model       : creatureCylinderBodyPart,
+                            scale       : [0.4, 0.4, 2.2],
+                            rotate      : [15, 0, 0],
+                            translate   : [0, 0, 2.8],
                             childrenList: [
                               {
                                 slug     : 'd2c',
@@ -291,11 +290,11 @@ function init() {
                         translate   : [1, 0, 2],
                         childrenList: [
                           {
-                            slug     : 'd3b',
-                            model    : creatureCylinderBodyPart,
-                            scale    : [0.4, 0.4, 1.7],
-                            rotate   : [15, 0, 0],
-                            translate: [0, 0, 2.6],
+                            slug        : 'd3b',
+                            model       : creatureCylinderBodyPart,
+                            scale       : [0.4, 0.4, 1.7],
+                            rotate      : [15, 0, 0],
+                            translate   : [0, 0, 2.6],
                             childrenList: [
                               {
                                 slug     : 'd3c',
@@ -309,18 +308,18 @@ function init() {
                         ],
                       },
                       {
-                        slug     : 'd4',
-                        model    : creatureCylinderBodyPart,
-                        scale    : [0.5, 0.5, 2],
-                        rotate   : [0, 0, 0],
-                        translate: [2.5, 0, 2],
+                        slug        : 'd4a',
+                        model       : creatureCylinderBodyPart,
+                        scale       : [0.5, 0.5, 2],
+                        rotate      : [10, 0, 0],
+                        translate   : [2.5, 0, 2],
                         childrenList: [
                           {
-                            slug     : 'd4b',
-                            model    : creatureCylinderBodyPart,
-                            scale    : [0.4, 0.4, 1.5],
-                            rotate   : [15, 0, 0],
-                            translate: [0, 0, 2],
+                            slug        : 'd4b',
+                            model       : creatureCylinderBodyPart,
+                            scale       : [0.4, 0.4, 1.5],
+                            rotate      : [15, 0, 0],
+                            translate   : [0, 0, 2],
                             childrenList: [
                               {
                                 slug     : 'd4c',
@@ -332,7 +331,7 @@ function init() {
                             ],
                           },
 
-                        ]
+                        ],
                       },
                     ],
                   },
@@ -343,8 +342,8 @@ function init() {
                 scale    : [3.2, 1, 3],
                 rotate   : [-10, 180, 0],
                 translate: [-0.5, 0, 0.5],
-                model    : creatureCylinderBodyPart
-              }
+                model    : creatureCylinderBodyPart,
+              },
             ],
           },
         ],
@@ -361,8 +360,6 @@ function init() {
           mMax             : 50,
           nMax             : 50,
           fatorInterpolacao: 1,
-
-          // zValues tem que ser uma matriz quadrada
           zValues: [
             [0, 0],
             [0, 0],
@@ -381,8 +378,6 @@ function init() {
           mMax             : 50,
           nMax             : 50,
           fatorInterpolacao: 3,
-
-          // zValues tem que ser uma matriz quadrada
           zValues: [
             [15, 15, 15, 15, 15, 15, 15],
             [-5, -5, 15, 15, -5, 10, 10],
@@ -409,71 +404,9 @@ function init() {
   gl.uniform1i(program.uSampler, 0);
 
   render();
-  initControls();
+  QuickSettings.useExtStyleSheet();
+  setupPanel();
 
-}
-
-function initControls() {
-
-  var axis = ['x', 'y', 'z'];
-
-  // A wrapper around dat.GUI interface for a simpler API
-  // for the purpose of this book
-  utils.configureControls({
-    'Rendering Mode': {
-      value   : renderingMode,
-      options : [
-        'TRIANGLES',
-        'LINES',
-        // 'POINTS'
-        /*,
-         'LINE_LOOP',
-         'LINE_STRIP',
-         'TRIANGLE_STRIP',
-         'TRIANGLE_FAN'*/
-      ],
-      onChange: v => {
-        renderingMode = v;
-        render();
-      },
-    },
-
-    // reduce receives a function and the initial value (below the initial value is {})
-    // result is the inital value or the return of the previous call to the function
-    // Spread all values from the reduce onto the controls
-    ...['Translate X', 'Translate Y', 'TranslateZ'].reduce((result, name, i) => {
-      result[name] = {
-        value: translationVector[i],
-        min  : -100,
-        max  : 100,
-        step : 0.01,
-        onChange(v, state) {
-          scene.translate[i] = v;
-          render();
-        },
-      };
-      return result;
-    }, {}),
-
-    ...['Rotate X', 'Rotate Y', 'Rotate Z'].reduce((result, name, i) => {
-      result[name] = {
-        value: rotationVector[i],
-        min  : -180, max: 180, step: 0.000001,
-        onChange(v, state) {
-          rotationVector  = [
-            state['Rotate X'],
-            state['Rotate Y'],
-            state['Rotate Z'],
-          ];
-          scene.rotate[i] = v;
-          render();
-
-        },
-      };
-      return result;
-    }, {}),
-
-  });
 }
 
 window.onload = init;

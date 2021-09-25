@@ -21,6 +21,12 @@ class TerrainShape3d {
     ],
 
   }) {
+    this.mMin = mMin;
+    this.nMin = nMin;
+    this.mMax = mMax;
+    this.nMax = nMax;
+    this.fatorInterpolacao = fatorInterpolacao;
+    this.zValues = zValues;
 
     this.terrain = new Terrain({mMin, nMin, mMax, nMax, fatorInterpolacao, zValues});
     this.shape3d = new Shape3d(program, gl, color, textureName);
